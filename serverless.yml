@@ -1,0 +1,103 @@
+service: dynamodb-crud-api
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: dev
+  region: ap-southeast-1
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:custom.postsTableName}
+
+custom:
+  postsTableName: post-table-${self:provider.stage}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+function:
+  getPost:
+    handler: api.getPost
+    name: getPost
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+          path: post/{postId}
+          method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:GetItem"
+        Resource: !GetAtt PostsTable.Arn
+  createPost:
+    handler: api.createPost
+    name: createPost
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+          path: post
+          method: POST
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:PutItem"
+        resource: !GetAtt PostsTable.Arn
+  updatePost:
+    handler: api.updatePost
+    name: updatePost
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+          path: post/{postId}
+          method: PUT
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb.UpdateItem"
+        resource: !GetAtt PostsTable.Arn
+  deletePost:
+    handler: api.deletePost
+    name: deletePost
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+          path: post/{postId}
+          method: DELETE
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb.DeleteItem"
+        Resource: !GetAtt PostsTable.Arn
+  getAllPost:
+    handler: api.getAllPost
+    name: getAllPost
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+        path: posts
+        method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:Scan"
+        Resource: !GetAtt PostsTable.Arn
+
+resources:
+  Resources:
+    postsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.postsTableName}
+        AttributeDefinitions:
+          - AttributeName: postId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: postId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
